@@ -7,15 +7,23 @@ const height = () => innerHeight;
 let waiting = 1;
 const { pow, random, trunc } = Math;
 const use = (value, fn) => fn(value);
+const range = (s, e) => {
+    const result = [];
+    for (let i = s; i < e; i++) {
+        result.push(i);
+    }
+    return result;
+};
 
 let active = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
 let next = 0;
+let current = 0;
 
 let nextNumber = () => config.isRandom ? trunc(random() * config.max) : ((++next) % (config.max + 1));
 
 let config = {
-    max: 1023,
+    max: 31,
     isRandom: true,
     hints: {
         currentLevelIdx: 0,
@@ -39,8 +47,8 @@ let config = {
 };
 
 let currentHintLevel = () => config.hints.levels[config.hints.currentLevelIdx];
-let showPowers = () => currentHintLevel.showPowers;
-let showHandsums = () => currentHintLevel.showHandsums;
+let showPowers = () => currentHintLevel().showPowers;
+let showHandsums = () => currentHintLevel().showHandsums;
 
 next = nextNumber();
 
@@ -49,7 +57,10 @@ setInterval(() => {
     if (waiting < 0) {
         waiting = 1;
         active = activeFingers(next);
+        current = next;
         next = nextNumber();
+        console.log(showPowers())
+        console.log(active)
     }
     m.redraw();
 }, 10);
@@ -137,8 +148,7 @@ const activeFingers = (n, nf = 10) => {
         }
     }
     return result.reverse();
-}
-
+};
 
 m.mount(document.body, {
     view: vnode => {
@@ -154,10 +164,39 @@ m.mount(document.body, {
                         id: hand.where,
                         transform: hand.where === 'right' //
                             ?
-                            `translate(${width()-200},${height()-200})rotate(-60)scale(.8)` //
+                            `translate(${width() - 200},${height() - 200})rotate(-60)scale(.8)` //
                             :
-                            `translate(${200},${height()-200})scale(.8,-.8)rotate(120)`,
+                            `translate(${200},${height() - 200})scale(.8,-.8)rotate(120)`,
                     }, [
+                        rect({
+                            id: 'arm',
+                            x: -25,
+                            y: 160,
+                            rx: 80,
+                            ry: 20,
+                            width: 180,
+                            height: 260,
+                            stroke: 'cyan'
+                        }), rect({
+                            id: 'arm',
+                            x: -25,
+                            y: 160,
+                            rx: 80,
+                            ry: 20,
+                            width: 180,
+                            height: 50,
+                            stroke: 'cyan'
+                        }),
+                        rect({
+                            id: 'arm',
+                            x: 20,
+                            y: 140,
+                            rx: 80,
+                            ry: 20,
+                            width: 120,
+                            height: 60,
+                            stroke: 'blue'
+                        }),
                         rect({
                             id: 'hand-base',
                             x: 0,
@@ -181,7 +220,7 @@ m.mount(document.body, {
                                     width: 40,
                                     height: finger.lengthScale * (act ? 200 : 100),
                                     stroke: act ? 'green' : 'red',
-                                    transform: `rotate(${finger.angle||0})`
+                                    transform: `rotate(${finger.angle || 0})`
                                 }),
                                 finger.name !== 'thumb' && !act ?
                                 circle({
@@ -192,10 +231,12 @@ m.mount(document.body, {
                                 }) : null,
                                 showPowers() ?
                                 text({
-                                    x: 0,
+                                    x: 160 - fingerIdx * 40 + 20,
                                     y: 0,
+                                    transform: hand.where === 'left' ?
+                                        `scale(-1,1)translate(${2 * (-205 - -fingerIdx * 40 + 20)})` : `scale(1,1)`,
                                     stroke: 'white'
-                                }, '' + finger.pow) :
+                                }, pow(2, finger.pow)) :
                                 null
                             ])))
                     ])),
@@ -209,7 +250,7 @@ m.mount(document.body, {
                         width: 100,
                         height: 30,
                         stroke: 'green'
-                    }, ),
+                    }),
                     text({ x: 10, y: 20, stroke: 'white' }, currentHintLevel().text),
                 ),
                 g({
@@ -222,7 +263,7 @@ m.mount(document.body, {
                         width: 50,
                         height: 30,
                         stroke: 'green'
-                    }, ),
+                    }),
                     text({ x: 10, y: 20, stroke: config.max === 31 ? 'white' : 'green' }, '0-31'),
                 ),
                 g({
@@ -235,11 +276,9 @@ m.mount(document.body, {
                         width: 75,
                         height: 30,
                         stroke: 'green'
-                    }, ),
+                    }),
                     text({ x: 10, y: 20, stroke: config.max === 1023 ? 'white' : 'green' }, '0-1023'),
                 ),
-
-
                 g({
                         transform: `translate(275,30)`,
                         onclick: e => config.isRandom = true
@@ -250,7 +289,7 @@ m.mount(document.body, {
                         width: 80,
                         height: 30,
                         stroke: 'green'
-                    }, ),
+                    }),
                     text({ x: 10, y: 20, stroke: config.isRandom ? 'white' : 'green' }, 'random'),
                 ),
                 g({
@@ -263,15 +302,36 @@ m.mount(document.body, {
                         width: 75,
                         height: 30,
                         stroke: 'green'
-                    }, ),
+                    }),
                     text({ x: 10, y: 20, stroke: !config.isRandom ? 'white' : 'green' }, '++'),
                 ),
+                text({
+                    x: 30,
+                    y: 100,
+                    stroke: 'white',
+
+                }, 'current: ', current),
                 text({
                     x: width() / 2 - 30,
                     y: height() - 200,
                     stroke: 'white',
 
                 }, 'next: ', next),
+
+                showHandsums() ? [text({
+                        x: width() / 2 - 30,
+                        y: height() - 100,
+                        stroke: 'white',
+
+                    }, 'left: ', range(5, 10).map(i => active[i]).map((e, i) => e === 1 ? pow(2, i + 5) : 0).reduce((a, b) => a + b, 0)),
+                    text({
+                        x: width() / 2 - 30,
+                        y: height() - 80,
+                        stroke: 'white',
+
+                    }, 'right: ', range(0, 5).map(i => active[i]).map((e, i) => e === 1 ? pow(2, i) : 0).reduce((a, b) => a + b, 0)),
+                ] : null,
+
                 rect({
                     x: 5,
                     y: height() - 20,
